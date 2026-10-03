@@ -2,38 +2,41 @@
 <html lang="th">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <title>น้ำท่วมบ้านเรา — ลุ่มน้ำแม่กลอง</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <meta name="theme-color" content="#106d68">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="mobile.css">
 </head>
 <body>
   <header>
     <div>
       <strong>น้ำท่วมบ้านเรา</strong>
-      <span>ลุ่มน้ำแม่กลอง</span>
+      <span>สมุทรสาคร · สมุทรสงคราม</span>
     </div>
     <div class="header-actions">
       <button id="adminBtn" class="admin-entry" type="button">🔐 ผู้ดูแล</button>
-      <button id="menuBtn" class="menu-entry" type="button" aria-label="เปิดเมนู" aria-expanded="false">☰</button>
+      <button id="menuBtn" class="menu-entry" type="button" aria-label="เปิดเมนู" aria-expanded="false" aria-controls="panel">☰ ตัวกรอง</button>
     </div>
   </header>
 
-  <div class="official">⚠️ <b>ข้อมูลเพื่อการเฝ้าระวัง</b> <span>ระบบรายงานและหมุดยกแนวทางจาก GERARAI Emergency Discovery • ข้อมูลจากชุมชนไม่ใช่ประกาศทางการ</span></div>
+  <div class="official">ข้อมูลจากคนในพื้นที่ · ใช้ประกอบการตัดสินใจ ไม่ใช่ประกาศเตือนภัยทางการ</div>
 
-  <div class="modebar" role="tablist" aria-label="โหมดแผนที่">
-    <button class="mode active" data-mode="live">LIVE</button>
-    <button class="mode" data-mode="basin">BASIN</button>
+  <div class="modebar" role="group" aria-label="โหมดแผนที่">
+    <button class="mode active" data-mode="live">สถานการณ์ในพื้นที่</button>
+    <button class="mode" data-mode="basin">ดูเส้นทางน้ำ</button>
   </div>
 
   <div id="panelBackdrop" class="panel-backdrop" hidden></div>
 
+  <section class="area-toolbar" aria-label="เลือกพื้นที่"><div class="area-heading"><span class="eyebrow">ดูสถานการณ์ใกล้บ้าน</span><h1>พื้นที่ไหนที่คุณอยากดู?</h1></div><div class="area-actions"><label class="area-select"><span>พื้นที่</span><select id="areaSelect"><option value="all">ทั้งสองจังหวัด</option><option value="sakhon">สมุทรสาคร</option><option value="songkhram">สมุทรสงคราม</option></select></label><button id="nearMe" type="button" class="secondary">◎ ใกล้ฉัน</button></div></section>
   <main>
     <div id="map">
       <div id="mapStatus" hidden></div>
-      <div id="modeBadge">LIVE • รายงานสถานการณ์</div>
-      <button id="reportBtn" class="report-fab" type="button" aria-label="แจ้งสถานการณ์" title="แจ้งสถานการณ์">＋</button>
+      <div id="modeBadge">สถานการณ์ในพื้นที่</div><div class="map-caption">แตะหมุดหรือวงสี เพื่อดูรายละเอียด</div>
+      <button id="reportBtn" class="report-fab" type="button" aria-label="แจ้งสถานการณ์" title="แจ้งสถานการณ์">＋ แจ้งน้ำท่วม</button>
       <div id="mapPickBar" class="map-pick-bar" hidden>
         <div><strong>📍 กำลังเลือกตำแหน่ง</strong><span>แตะแผนที่ 1 ครั้ง หรือใช้ GPS ปัจจุบัน</span></div>
         <div class="map-pick-actions">
@@ -46,18 +49,18 @@
 
     <aside id="panel" aria-label="เมนูและตัวกรอง">
       <div class="panel-mobile-head">
-        <div><strong>เมนู</strong><span>ตัวกรองและการตั้งค่า</span></div>
+        <div><strong>เลือกข้อมูลบนแผนที่</strong><span>เปิดเฉพาะข้อมูลที่คุณอยากดู</span></div>
         <button id="panelClose" type="button" aria-label="ปิดเมนู">×</button>
       </div>
 
       <div class="mobile-mode-switch" aria-label="โหมดแผนที่">
-        <button class="mode active" data-mode="live" type="button">LIVE</button>
-        <button class="mode" data-mode="basin" type="button">BASIN</button>
+        <button class="mode active" data-mode="live" type="button">สถานการณ์ในพื้นที่</button>
+        <button class="mode" data-mode="basin" type="button">ดูเส้นทางน้ำ</button>
       </div>
       <button id="mobileAdminBtn" class="mobile-admin-entry" type="button">🔐 ผู้ดูแล</button>
       <p class="mobile-disclaimer">⚠️ ข้อมูลจากชุมชนใช้เพื่อเฝ้าระวัง ไม่ใช่ประกาศทางการ</p>
       <section class="card" id="liveCard">
-        <h2>สถานการณ์ตอนนี้</h2>
+        <span class="eyebrow">รายงานจากชุมชน</span><h2>ภาพรวมสถานการณ์</h2>
         <div class="stats">
           <div><b id="floodCount">0</b><span>น้ำท่วม</span></div>
           <div><b id="helpCount">0</b><span>ขอความช่วยเหลือ</span></div>
@@ -88,7 +91,7 @@
         <label><input id="emergencyToggle" type="checkbox" checked> หมุดข้อมูลอื่น</label>
         <label><input id="routeToggle" type="checkbox" checked> เส้นทางน้ำจริงเชื่อมเขื่อน</label>
         <label><input id="waterToggle" type="checkbox" checked> คลองหลักที่มีชื่อ</label>
-        <label><input id="basinToggle" type="checkbox"> กรอบศึกษาลุ่มน้ำ (Prototype)</label>
+        <label><input id="basinToggle" type="checkbox"> ขอบเขตพื้นที่ศึกษาลุ่มน้ำ</label>
         <label><input id="controlToggle" type="checkbox" checked> เขื่อน / ประตูระบายน้ำ</label>
       </section>
 
@@ -112,11 +115,14 @@
       </section>
     </aside>
   </main>
+  <section class="situation-strip" aria-label="สถานะข้อมูล"><div class="connection-line"><span id="connectionDot" class="connection-dot"></span><strong id="publicStatus" role="status">กำลังเชื่อมต่อข้อมูล…</strong><button id="refreshPublic" type="button">↻ โหลดใหม่</button></div><p id="publicSummary">กำลังตรวจสอบรายงานในพื้นที่</p><p class="map-explanation">ไม่มีรายงาน ไม่ได้แปลว่าไม่มีน้ำท่วม · วงสีเป็นบริเวณโดยประมาณ</p></section>
+  <nav class="public-actions" aria-label="การใช้งานหลัก"><button id="publicFlood" class="primary" type="button"><span aria-hidden="true">＋</span> แจ้งน้ำท่วม</button><button id="publicHelp" class="help-action" type="button">ขอความช่วยเหลือ</button></nav>
+  <div id="uxToast" role="status" hidden></div>
 
-  <dialog id="reportDialog">
+  <dialog id="reportDialog" aria-labelledby="formTitle">
     <form id="reportForm" class="emergency-form">
       <button type="button" class="x" id="closeReport" aria-label="ปิด">×</button>
-      <h2 id="formTitle">แจ้งสถานการณ์</h2>
+      <h2 id="formTitle">แจ้งสถานการณ์</h2><p class="form-intro">บอกสิ่งที่คุณเห็น เพื่อช่วยคนในพื้นที่</p><p id="reportConnection" class="form-connection"></p>
 
       <fieldset>
         <legend>1. เกิดอะไรขึ้น?</legend>
@@ -154,7 +160,7 @@
         <div class="emg-hotlines"><a class="secondary" href="tel:1669">📞 1669 · การแพทย์ฉุกเฉิน</a><a class="secondary" href="tel:1784">📞 1784 · สาธารณภัย (ปภ.)</a></div>
       </div>
 
-      <div class="captcha">☑ CAPTCHA placeholder — production ต้องตรวจ CAPTCHA + rate limit ที่ backend</div>
+      <div class="captcha">กรุณาอย่าใส่ชื่อ เบอร์โทร หรือข้อมูลส่วนตัวในรายละเอียดรายงาน</div>
       <p class="form-error" id="formError" hidden></p>
       <button type="submit" class="primary full" id="submitReportBtn">ส่งรายงาน</button>
     </form>
@@ -186,5 +192,6 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="emergency-core.js"></script>
   <script src="app.js"></script>
+  <script src="mobile.js"></script>
 </body>
 </html>

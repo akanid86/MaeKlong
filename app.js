@@ -20,7 +20,7 @@ baseMap.on('tileerror', () => {
   if (tileErrors === 3) {
     const msg = document.getElementById('mapStatus');
     msg.hidden = false;
-    msg.textContent = 'แผนที่พื้นหลังโหลดไม่ได้ — กรุณารีเฟรชหน้าเว็บ หรือเปลี่ยนผู้ให้บริการ Base Map ก่อนใช้งานจริง';
+    msg.textContent = 'โหลดแผนที่ไม่สำเร็จ กรุณาตรวจอินเทอร์เน็ตแล้วเปิดหน้าเว็บใหม่';
   }
 });
 
@@ -105,7 +105,7 @@ function forgetOwnerToken(id){
 async function apiRequest(path,opts={}){
   const headers={Accept:'application/json',...(opts.headers||{})};
   if(opts.body && !headers['Content-Type'])headers['Content-Type']='application/json';
-  const res=await fetch(API_BASE+path,{...opts,headers});
+  const res=await fetch(API_BASE+path,{...opts,headers,signal:opts.signal || AbortSignal.timeout(12000)});
   let data=null; try{data=await res.json();}catch(_){data=null;}
   if(!res.ok) throw new Error(data?.error||`HTTP ${res.status}`);
   return data;
@@ -237,7 +237,7 @@ function chips(name,list,current){
 function renderTypeGrid(preselect='flood'){
   const grid=document.getElementById('typeGrid');
   grid.innerHTML=E.FALLBACK_RULES.map(r=>`<label class="emg-type"><input type="radio" name="type_code" value="${r.type_code}" ${r.type_code===preselect?'checked':''}><span><b>${r.icon}</b>${escapeHtml(r.label_th)}</span></label>`).join('');
-  grid.querySelectorAll('[name=type_code]').forEach(i=>i.onchange=()=>{selectedType=i.value;renderTypeFields({});});
+  grid.querySelectorAll('[name=type_code]').forEach(i=>i.onchange=()=>{selectedType=i.value;renderTypeFields({});if(!editingReportId)document.getElementById('formTitle').textContent=selectedType==='help_request'?'ขอความช่วยเหลือ':'แจ้งสถานการณ์';});
 }
 function renderTypeFields(values={}){
   const rule=E.ruleMap().get(selectedType)||E.FALLBACK_RULES[0];
@@ -282,9 +282,10 @@ function openReport(type='flood', existing=null){
   document.getElementById('formTitle').textContent=editingReportId?'อัปเดตสถานการณ์':(selectedType==='help_request'?'ขอความช่วยเหลือ':'แจ้งสถานการณ์');
   document.getElementById('submitReportBtn').textContent=editingReportId?'บันทึกการอัปเดต':'ส่งรายงาน';
   document.getElementById('reportDialog').showModal();
+  window.prepareReportUX?.();
 }
 function setPicked(lat,lng,source='map',accuracy=null){
-  picked=L.latLng(+lat,+lng); pickedSource=source; pickedAccuracy=Number.isFinite(Number(accuracy))?Number(accuracy):null;
+  picked=L.latLng(+lat,+lng); pickedSource=source; pickedAccuracy=accuracy!=null && Number.isFinite(Number(accuracy))?Number(accuracy):null;
   const sourceText=source==='gps'?'GPS ปัจจุบัน':source==='existing'?'ตำแหน่งเดิม':'เลือกจากแผนที่';
   const acc=pickedAccuracy!=null?` • ความแม่นยำประมาณ ±${Math.round(pickedAccuracy)} ม.`:'';
   document.getElementById('picked').textContent=`${sourceText}: ${picked.lat.toFixed(5)}, ${picked.lng.toFixed(5)}${acc}`;
@@ -331,6 +332,7 @@ async function submitReport(e){
     document.getElementById('reportDialog').close();
     editingReportId=null; picked=null; pickedSource=''; pickedAccuracy=null; pickerBar(false);
     updateStoreStatus();
+    window.showUXToast?.(apiOnline?'ส่งรายงานแล้ว ขอบคุณที่ช่วยแจ้งสถานการณ์':'บันทึกไว้ในเครื่องนี้แล้ว คนอื่นยังไม่เห็นรายงานนี้');
   }catch(ex){
     err.textContent=`บันทึกไม่สำเร็จ: ${ex.message||ex}`;err.hidden=false;
   }finally{
@@ -659,12 +661,12 @@ function setMode(mode){
   if(map.hasLayer(basinLayer))map.removeLayer(basinLayer);
   floodAreaLayer.clearLayers();
   if(live){
-    document.getElementById('modeBadge').textContent='LIVE • รายงานสถานการณ์';
-    map.setView([13.62,99.95],9);
+    document.getElementById('modeBadge').textContent='สถานการณ์ในพื้นที่';
+    map.fitBounds([[13.22,99.8],[13.75,100.43]]);
     renderEmergency();
     if(document.getElementById('basinToggle').checked)basinLayer.addTo(map);
   }else{
-    document.getElementById('modeBadge').textContent='BASIN • เส้นทางน้ำจริง';
+    document.getElementById('modeBadge').textContent='เส้นทางน้ำในลุ่มน้ำแม่กลอง';
     basinLayer.addTo(map);map.fitBounds(BASIN_VIEW);
   }
   loadConnectionRoutes();scheduleCanalLoad(600);
@@ -803,7 +805,7 @@ refreshReportsFromBackend();
 loadConnectionRoutes();
 scheduleCanalLoad(900);
 setTimeout(loadNamedControls,1400);
-setInterval(()=>{renderEmergency(); if(apiOnline)refreshReportsFromBackend();},60000);
+setInterval(()=>{renderEmergency(); refreshReportsFromBackend();},60000);
 
 // v0.9.1 mobile map-first drawer ------------------------------------------
 (function(){
