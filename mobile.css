@@ -11,3 +11,8 @@ dialog{width:min(94vw,540px);max-height:90dvh;border-radius:22px;overscroll-beha
 @media(max-height:600px) and (max-width:760px){header{height:52px}.area-toolbar{padding:7px 12px}.area-heading{display:none}.situation-strip{padding:5px 12px}.map-explanation{display:none}.public-actions{padding-top:5px;padding-bottom:5px}.public-actions button{min-height:44px}.map-pick-bar{top:112px}}
 .modebar{right:150px}.emg-type,.emg-chip{position:relative}.emg-type input,.emg-chip input{width:1px;height:1px;padding:0;margin:0;inset:0;border:0}dialog{overflow-x:hidden}.picking-location .map-caption{display:none}.picking-location .public-actions{opacity:.45}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+
+/* v0.11: province selector removed; live map follows the Mae Klong basin study envelope. */
+.area-toolbar{display:none!important}
+@media(max-width:760px){.map-pick-bar{top:76px}.official{flex-shrink:0}}
+@media(max-height:600px) and (max-width:760px){.map-pick-bar{top:58px}}

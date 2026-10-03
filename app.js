@@ -1,4 +1,4 @@
-// Flood Map — Mae Klong Basin prototype v0.9
+// Flood Map — Mae Klong Basin v0.11 — Public Reporting + Admin Moderation
 // GERARAI ER + REAL WATER CONNECTIONS
 // Rule: hydrological connection lines are NEVER invented. Every visible route segment
 // comes directly from OpenStreetMap geometry returned by Overpass. No dam-to-dam
@@ -28,15 +28,14 @@ baseMap.on('tileerror', () => {
 // ---------------------------------------------------------------------------
 // GERARAI Emergency Discovery UI/logic port
 // Source basis: GERARAI phase13 emergency-core.js / emergency-ui.js.
-// This standalone prototype keeps reports in localStorage only. The production
-// backend must be separate from GERARAI production and enforce CAPTCHA/rate limits.
+// Public reports are stored in the separate Mae Klong backend. If the backend is unavailable,
+// the site stays read-only rather than creating private local-only reports.
 // ---------------------------------------------------------------------------
 const E = window.GerarAIEmergency;
 const API_BASE = String(window.MAEKLONG_API_BASE || 'https://api.maeklong.online').replace(/\/$/,'');
-const REPORT_STORE_KEY = 'maeklong-emergency-v09-local';
 const OWNER_STORE_KEY = 'maeklong-owner-tokens-v1';
-const CLEAN_SLATE_KEY = 'maeklong-v09-clean-slate-done';
-const LEGACY_REPORT_KEYS = ['maeklong-emergency-v06-local','maeklong-emergency-v07-local','maeklong-emergency-v08-local'];
+const CLEAN_SLATE_KEY = 'maeklong-v011-clean-slate-done';
+const LEGACY_REPORT_KEYS = ['maeklong-emergency-v06-local','maeklong-emergency-v07-local','maeklong-emergency-v08-local','maeklong-emergency-v09-local','maeklong-emergency-v010-local'];
 const emergencyLayer = L.layerGroup().addTo(map);
 const floodAreaLayer = L.layerGroup().addTo(map);
 let currentMode = 'live';
@@ -44,6 +43,9 @@ let picked = null;
 let pickOnMap = false;
 let selectedType = 'flood';
 let editingReportId = null;
+let editingReportRecord = null;
+let flaggingReportId = null;
+let adminQueueView = 'queue';
 let pickedSource = '';
 let pickedAccuracy = null;
 let selectedFilter = '';
@@ -74,21 +76,11 @@ function clearLegacyReportDataOnce(){
   try{
     if(localStorage.getItem(CLEAN_SLATE_KEY)) return;
     LEGACY_REPORT_KEYS.forEach(k=>localStorage.removeItem(k));
-    localStorage.removeItem(REPORT_STORE_KEY);
     localStorage.setItem(CLEAN_SLATE_KEY,'1');
   }catch(_){/* ignore */}
 }
-function loadReports(){
-  clearLegacyReportDataOnce();
-  try{
-    const raw=localStorage.getItem(REPORT_STORE_KEY);
-    if(raw){const rows=JSON.parse(raw);if(Array.isArray(rows))return rows;}
-  }catch(_){/* ignore */}
-  return [];
-}
-function saveReports(){
-  try{localStorage.setItem(REPORT_STORE_KEY,JSON.stringify(reports.filter(r=>String(r.id||'').startsWith('local-'))));}catch(_){/* ignore */}
-}
+function loadReports(){ clearLegacyReportDataOnce(); return []; }
+function saveReports(){ /* v0.11: reports live in D1; only ownership tokens stay on-device. */ }
 function ownerTokens(){
   try{return JSON.parse(localStorage.getItem(OWNER_STORE_KEY)||'{}')||{};}catch(_){return {};}
 }
@@ -116,14 +108,14 @@ async function refreshReportsFromBackend(){
     if(!Array.isArray(data?.reports)) throw new Error('รูปแบบข้อมูลไม่ถูกต้อง');
     apiOnline=true; reports=data.reports; updateStoreStatus(); renderEmergency();
   }catch(err){
-    apiOnline=false; reports=loadReports(); updateStoreStatus(); renderEmergency();
-    console.warn('Backend unavailable; local fallback active',err);
+    apiOnline=false; reports=[]; updateStoreStatus(); renderEmergency();
+    console.warn('Backend unavailable; site is read-only',err);
   }
 }
 function updateStoreStatus(){
   const el=document.getElementById('reportStoreStatus'); if(!el)return;
   if(apiOnline) el.textContent=isAdmin?'เชื่อมฐานข้อมูลกลางแล้ว • โหมดผู้ดูแลเปิดอยู่':'เชื่อมฐานข้อมูลกลางแล้ว • รายงานจะแสดงให้ผู้ใช้ทุกคนเห็น';
-  else el.textContent='ยังไม่เชื่อมฐานข้อมูลกลาง • รายงานชั่วคราวจะอยู่เฉพาะเครื่องนี้';
+  else el.textContent='ระบบรับรายงานยังไม่พร้อม • ดูแผนที่ได้ แต่ยังส่งรายงานไม่ได้';
 }
 function reportAuthHeaders(id){
   if(isAdmin&&adminToken)return {'Authorization':`Bearer ${adminToken}`};
@@ -150,10 +142,13 @@ function emergencyPinIcon(report,selected=false){
     iconSize:[30,36],iconAnchor:[15,34],popupAnchor:[0,-31]
   });
 }
-function isOwnedLocalReport(r){
-  return String(r?.id||'').startsWith('local-') || !!ownerTokenFor(r?.id);
-}
+function isOwnedLocalReport(r){ return !!ownerTokenFor(r?.id); }
+
 function canManageReport(r){return isAdmin || isOwnedLocalReport(r);}
+function moderationLabel(status){
+  const m={verified:['✓ ผู้ดูแลตรวจแล้ว','verified'],corrected:['✎ ผู้ดูแลปรับข้อมูล','corrected'],visible:['รอตรวจสอบ','visible'],hidden:['ซ่อนโดยผู้ดูแล','hidden'],rejected:['ปฏิเสธโดยผู้ดูแล','rejected']};
+  return m[status]||m.visible;
+}
 function reportPopup(r){
   const rule=E.ruleMap().get(r.type_code)||{icon:'📍',label_th:r.type_code};
   const f=E.freshness(r,null,Date.now());
@@ -165,18 +160,26 @@ function reportPopup(r){
   if(r.people_count) bits.push(`ประมาณ ${r.people_count} คน`);
   const stale=E.staleWarning(r,null,Date.now());
   const manageable=canManageReport(r);
-  const actions=manageable ? `<div class="report-actions">
+  const [modText,modCls]=moderationLabel(r.moderation_status||'visible');
+  const ownerActions=manageable ? `<div class="report-actions">
     <button type="button" data-report-action="edit" data-report-id="${escapeHtml(r.id)}">✏️ อัปเดตสถานการณ์</button>
     ${r.emergency_status!=='resolved'?`<button type="button" data-report-action="resolve" data-report-id="${escapeHtml(r.id)}">✅ คลี่คลายแล้ว</button>`:''}
     <button type="button" class="report-delete" data-report-action="delete" data-report-id="${escapeHtml(r.id)}">🗑️ ลบหมุด</button>
-  </div><p class="form-help">${isAdmin?'โหมดผู้ดูแล: แก้ไข/ลบรายงานนี้ได้':'คุณแก้ไขรายงานนี้ได้จากอุปกรณ์ที่สร้างรายงาน'}</p>` : '';
-  return `<div class="emergency-detail"><div class="emg-detail-head"><div><strong>${rule.icon} ${escapeHtml(rule.label_th)}</strong><div class="emg-chips-row"><span class="emg-fresh emg-${f.state}">${escapeHtml(f.label)}</span><span class="emg-source">รายงานจากชุมชน</span></div></div></div><p class="emg-headline">${escapeHtml(E.headline(r))}</p>${bits.length?`<p>${bits.map(escapeHtml).join('<br>')}</p>`:''}${r.note?`<p class="emg-note">${escapeHtml(r.note)}</p>`:''}${stale?`<span class="emg-stale">${escapeHtml(stale)}</span>`:''}<ul class="emg-times">${lines.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul><p class="form-help">${escapeHtml(E.PRECISION_LABEL[r.location_precision]||'')}</p>${actions}</div>`;
+  </div>` : '';
+  const moderationActions=isAdmin ? `<div class="moderation-actions">
+    <button type="button" data-report-action="verify" data-report-id="${escapeHtml(r.id)}">✓ ยืนยันข้อมูล</button>
+    <button type="button" data-report-action="hide" data-report-id="${escapeHtml(r.id)}">ซ่อนชั่วคราว</button>
+    <button type="button" data-report-action="reject" data-report-id="${escapeHtml(r.id)}">ปฏิเสธ</button>
+  </div>` : `<button type="button" class="flag-report" data-report-action="flag" data-report-id="${escapeHtml(r.id)}">⚑ แจ้งว่าข้อมูลนี้ผิด</button>`;
+  const manageNote=manageable?`<p class="form-help">${isAdmin?'โหมดผู้ดูแล: จัดการรายงานนี้ได้':'คุณแก้ไขรายงานนี้ได้จากอุปกรณ์ที่สร้างรายงาน'}</p>`:'';
+  return `<div class="emergency-detail"><div class="emg-detail-head"><div><strong>${rule.icon} ${escapeHtml(rule.label_th)}</strong><div class="emg-chips-row"><span class="emg-fresh emg-${f.state}">${escapeHtml(f.label)}</span><span class="emg-source">รายงานจากชุมชน</span><span class="moderation-badge ${modCls}">${escapeHtml(modText)}</span></div></div></div><p class="emg-headline">${escapeHtml(E.headline(r))}</p>${bits.length?`<p>${bits.map(escapeHtml).join('<br>')}</p>`:''}${r.note?`<p class="emg-note">${escapeHtml(r.note)}</p>`:''}${stale?`<span class="emg-stale">${escapeHtml(stale)}</span>`:''}<ul class="emg-times">${lines.map(x=>`<li>${escapeHtml(x)}</li>`).join('')}</ul><p class="form-help">${escapeHtml(E.PRECISION_LABEL[r.location_precision]||'')}</p>${ownerActions}${moderationActions}${manageNote}</div>`;
 }
 
 function visibleReports(){
   const history=document.getElementById('historyToggle')?.checked;
   const freshOnly=document.getElementById('freshOnly')?.checked;
   return reports.filter(r=>{
+    if(['hidden','rejected'].includes(r.moderation_status))return false;
     const f=E.freshness(r,null,Date.now());
     if(selectedFilter && r.type_code!==selectedFilter)return false;
     if(!history && !f.current)return false;
@@ -262,7 +265,7 @@ function pickerBar(show){
   }
 }
 function cancelReportFlow(){
-  pickOnMap=false; editingReportId=null; picked=null; pickedSource=''; pickedAccuracy=null;
+  pickOnMap=false; editingReportId=null; editingReportRecord=null; picked=null; pickedSource=''; pickedAccuracy=null;
   pickerBar(false);
   const dlg=document.getElementById('reportDialog');
   if(dlg.open)dlg.close();
@@ -270,7 +273,7 @@ function cancelReportFlow(){
 function openReport(type='flood', existing=null){
   if(currentMode!=='live')setMode('live');
   selectedType=existing?.type_code||type;
-  editingReportId=existing?.id||null;
+  editingReportId=existing?.id||null; editingReportRecord=existing||null;
   pickOnMap=false; pickerBar(false);
   picked=null; pickedSource=''; pickedAccuracy=null;
   if(existing)setPicked(existing.latitude,existing.longitude,'existing');
@@ -308,31 +311,25 @@ async function submitReport(e){
   if(validation){err.textContent=validation;err.hidden=false;return;}
   err.hidden=true; submit.disabled=true; submit.textContent=editingReportId?'กำลังบันทึก…':'กำลังส่ง…';
   try{
+    if(!apiOnline) throw new Error('ระบบกลางยังไม่พร้อม กรุณารอสักครู่แล้วลองใหม่ เพื่อให้รายงานของคุณเห็นได้ทุกคน');
     if(editingReportId){
       const idx=reports.findIndex(r=>String(r.id)===String(editingReportId));
-      if(idx<0)throw new Error('ไม่พบรายงานที่ต้องการแก้ไข');
-      const old=reports[idx];
-      if(apiOnline && !String(old.id).startsWith('local-')){
-        const data=await apiRequest(`/api/reports/${encodeURIComponent(old.id)}`,{method:'PATCH',headers:reportAuthHeaders(old.id),body:JSON.stringify(d)});
-        reports[idx]=data.report;
-      }else{
-        if(!canManageReport(old))throw new Error('ไม่มีสิทธิ์แก้ไขรายงานนี้');
-        reports[idx]=makeReport({id:old.id,created_at:old.created_at,updated_at:new Date().toISOString(),...d});
-        saveReports();
-      }
-    }else if(apiOnline){
+      const old=idx>=0?reports[idx]:editingReportRecord;
+      if(!old)throw new Error('ไม่พบรายงานที่ต้องการแก้ไข');
+      if(!canManageReport(old))throw new Error('ไม่มีสิทธิ์แก้ไขรายงานนี้');
+      const data=await apiRequest(`/api/reports/${encodeURIComponent(old.id)}`,{method:'PATCH',headers:reportAuthHeaders(old.id),body:JSON.stringify(d)});
+      if(idx>=0)reports[idx]=data.report; else reports.push(data.report);
+    }else{
       const data=await apiRequest('/api/reports',{method:'POST',body:JSON.stringify(d)});
       reports.push(data.report);
       if(data.owner_token)rememberOwnerToken(data.report.id,data.owner_token);
-    }else{
-      reports.push(makeReport({id:`local-${Date.now()}`,...d}));
-      saveReports();
     }
     selectedFilter='';renderFilters();renderEmergency();
     document.getElementById('reportDialog').close();
-    editingReportId=null; picked=null; pickedSource=''; pickedAccuracy=null; pickerBar(false);
+    editingReportId=null; editingReportRecord=null; picked=null; pickedSource=''; pickedAccuracy=null; pickerBar(false);
     updateStoreStatus();
-    window.showUXToast?.(apiOnline?'ส่งรายงานแล้ว ขอบคุณที่ช่วยแจ้งสถานการณ์':'บันทึกไว้ในเครื่องนี้แล้ว คนอื่นยังไม่เห็นรายงานนี้');
+    window.showUXToast?.('ส่งรายงานแล้ว รายงานจะแสดงให้ผู้ใช้อื่นเห็นบนแผนที่');
+    if(isAdmin) loadAdminQueue();
   }catch(ex){
     err.textContent=`บันทึกไม่สำเร็จ: ${ex.message||ex}`;err.hidden=false;
   }finally{
@@ -662,7 +659,7 @@ function setMode(mode){
   floodAreaLayer.clearLayers();
   if(live){
     document.getElementById('modeBadge').textContent='สถานการณ์ในพื้นที่';
-    map.fitBounds([[13.22,99.8],[13.75,100.43]]);
+    map.fitBounds(BASIN_VIEW,{padding:[18,18]});
     renderEmergency();
     if(document.getElementById('basinToggle').checked)basinLayer.addTo(map);
   }else{
@@ -719,16 +716,16 @@ document.addEventListener('click',async e=>{
   const btn=e.target.closest('[data-report-action]'); if(!btn)return;
   const id=btn.dataset.reportId, action=btn.dataset.reportAction;
   const r=reports.find(x=>String(x.id)===String(id));
-  if(!r || !canManageReport(r))return;
+  if(!r)return;
+  if(action==='flag'){openFlagDialog(r.id);return;}
+  if(['verify','hide','reject','restore'].includes(action)){if(isAdmin)await moderateReport(r.id,action);return;}
+  if(!canManageReport(r))return;
   if(action==='edit'){map.closePopup();openReport(r.type_code,r);return;}
   if(action==='resolve'){
     try{
-      if(apiOnline && !String(r.id).startsWith('local-')){
-        const data=await apiRequest(`/api/reports/${encodeURIComponent(r.id)}`,{method:'PATCH',headers:reportAuthHeaders(r.id),body:JSON.stringify({emergency_status:'resolved'})});
-        const idx=reports.findIndex(x=>String(x.id)===String(r.id)); if(idx>=0)reports[idx]=data.report;
-      }else{
-        r.emergency_status='resolved'; r.updated_at=new Date().toISOString(); r.resolved_at=r.updated_at; saveReports();
-      }
+      if(!apiOnline) throw new Error('ระบบกลางยังไม่พร้อม');
+      const data=await apiRequest(`/api/reports/${encodeURIComponent(r.id)}`,{method:'PATCH',headers:reportAuthHeaders(r.id),body:JSON.stringify({emergency_status:'resolved'})});
+      const idx=reports.findIndex(x=>String(x.id)===String(r.id)); if(idx>=0)reports[idx]=data.report;
       map.closePopup();renderEmergency();
     }catch(ex){alert(`อัปเดตไม่สำเร็จ: ${ex.message||ex}`);}
     return;
@@ -736,18 +733,65 @@ document.addEventListener('click',async e=>{
   if(action==='delete'){
     if(!confirm(isAdmin?'ลบรายงานนี้ออกจากระบบใช่ไหม?':'ลบหมุดนี้ใช่ไหม? การลบย้อนกลับไม่ได้'))return;
     try{
-      if(apiOnline && !String(r.id).startsWith('local-')) await apiRequest(`/api/reports/${encodeURIComponent(r.id)}`,{method:'DELETE',headers:reportAuthHeaders(r.id)});
-      reports=reports.filter(x=>String(x.id)!==String(r.id)); forgetOwnerToken(r.id); saveReports(); map.closePopup();renderEmergency();
+      if(!apiOnline)throw new Error('ระบบกลางยังไม่พร้อม');
+      await apiRequest(`/api/reports/${encodeURIComponent(r.id)}`,{method:'DELETE',headers:reportAuthHeaders(r.id)});
+      reports=reports.filter(x=>String(x.id)!==String(r.id)); forgetOwnerToken(r.id); map.closePopup();renderEmergency();
+      if(isAdmin)loadAdminQueue();
     }catch(ex){alert(`ลบไม่สำเร็จ: ${ex.message||ex}`);}
   }
 });
 
+
+function openFlagDialog(id){
+  if(!apiOnline){window.showUXToast?.('ระบบกลางยังไม่พร้อม จึงยังส่งเรื่องให้ผู้ดูแลไม่ได้');return;}
+  flaggingReportId=String(id);
+  document.getElementById('flagReportId').value=flaggingReportId;
+  document.getElementById('flagDetail').value='';
+  document.getElementById('flagError').hidden=true;
+  const first=document.querySelector('#flagForm [name="flag_reason"][value="wrong_location"]'); if(first)first.checked=true;
+  map.closePopup(); document.getElementById('flagDialog').showModal();
+}
+async function moderateReport(id,action,note=''){
+  if(!isAdmin||!apiOnline)return;
+  const labels={verify:'ยืนยันข้อมูล',hide:'ซ่อนรายงาน',reject:'ปฏิเสธรายงาน',restore:'นำกลับมาแสดง'};
+  if(['hide','reject'].includes(action)&&!confirm(`${labels[action]}นี้ใช่ไหม?`))return;
+  try{
+    await apiRequest(`/api/admin/reports/${encodeURIComponent(id)}/moderate`,{method:'POST',headers:{Authorization:`Bearer ${adminToken}`},body:JSON.stringify({action,note})});
+    map.closePopup(); await refreshReportsFromBackend(); await loadAdminQueue();
+    window.showUXToast?.(`${labels[action]}แล้ว`);
+  }catch(ex){alert(`จัดการรายงานไม่สำเร็จ: ${ex.message||ex}`);}
+}
+function adminQueueCard(r){
+  const rule=E.ruleMap().get(r.type_code)||{icon:'📍',label_th:r.type_code};
+  const [modText,modCls]=moderationLabel(r.moderation_status||'visible');
+  const flags=Number(r.flag_count||0);
+  const loc=`${Number(r.latitude).toFixed(4)}, ${Number(r.longitude).toFixed(4)}`;
+  const when=new Date(r.reported_at).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'});
+  return `<article class="admin-queue-item" data-admin-report-id="${escapeHtml(r.id)}"><div class="admin-queue-title"><strong>${rule.icon} ${escapeHtml(rule.label_th)}</strong><span class="moderation-badge ${modCls}">${escapeHtml(modText)}</span>${flags?`<span class="flag-count">⚑ ${flags}</span>`:''}</div><p>${escapeHtml(E.headline(r))}</p><small>${escapeHtml(when)} · ${escapeHtml(loc)}</small><div class="admin-queue-actions"><button type="button" data-admin-action="locate">ดูบนแผนที่</button><button type="button" data-admin-action="edit">แก้ไข</button><button type="button" data-admin-action="verify">✓ ยืนยัน</button><button type="button" data-admin-action="hide">ซ่อน</button><button type="button" data-admin-action="reject">ปฏิเสธ</button>${['hidden','rejected'].includes(r.moderation_status)?'<button type="button" data-admin-action="restore">นำกลับ</button>':''}</div></article>`;
+}
+async function loadAdminQueue(){
+  if(!isAdmin||!apiOnline)return;
+  const box=document.getElementById('adminQueue'); box.innerHTML='<p class="form-help">กำลังโหลดคิวตรวจสอบ…</p>';
+  try{
+    const data=await apiRequest(`/api/admin/reports?view=${encodeURIComponent(adminQueueView)}`,{headers:{Authorization:`Bearer ${adminToken}`}});
+    const rows=Array.isArray(data?.reports)?data.reports:[];
+    box.innerHTML=rows.length?rows.map(adminQueueCard).join(''):'<p class="admin-empty">ไม่มีรายงานในคิวนี้</p>';
+    box.querySelectorAll('[data-admin-action]').forEach(btn=>btn.onclick=async()=>{
+      const card=btn.closest('[data-admin-report-id]'); const id=card.dataset.adminReportId; const action=btn.dataset.adminAction;
+      const row=rows.find(x=>String(x.id)===String(id)); if(!row)return;
+      if(action==='locate'){document.getElementById('adminDialog').close();map.setView([row.latitude,row.longitude],15);return;}
+      if(action==='edit'){document.getElementById('adminDialog').close();openReport(row.type_code,row);return;}
+      await moderateReport(id,action);
+    });
+  }catch(ex){box.innerHTML=`<p class="form-error">โหลดคิวไม่ได้: ${escapeHtml(ex.message||ex)}</p>`;}
+}
 function updateAdminUi(){
   const btn=document.getElementById('adminBtn');
   if(btn){btn.classList.toggle('active',isAdmin);btn.textContent=isAdmin?'🔓 ผู้ดูแลเปิดอยู่':'🔐 ผู้ดูแล';}
   const mobileBtn=document.getElementById('mobileAdminBtn');
   if(mobileBtn){mobileBtn.classList.toggle('active',isAdmin);mobileBtn.textContent=isAdmin?'🔓 ผู้ดูแลเปิดอยู่':'🔐 ผู้ดูแล';}
   const logout=document.getElementById('adminLogout'); if(logout)logout.hidden=!isAdmin;
+  const moderation=document.getElementById('adminModeration'); if(moderation)moderation.hidden=!isAdmin;
   const danger=document.getElementById('adminDanger'); if(danger)danger.hidden=!isAdmin;
   updateStoreStatus();
 }
@@ -755,8 +799,20 @@ function openAdminDialog(){
   const dlg=document.getElementById('adminDialog');
   document.getElementById('adminError').hidden=true;
   document.getElementById('adminTokenInput').value='';
-  updateAdminUi(); if(!dlg.open)dlg.showModal();
+  updateAdminUi(); if(!dlg.open)dlg.showModal(); if(isAdmin)loadAdminQueue();
 }
+document.getElementById('closeFlag').onclick=()=>document.getElementById('flagDialog').close();
+document.getElementById('flagDialog').addEventListener('cancel',e=>{e.preventDefault();e.currentTarget.close();});
+document.getElementById('flagDialog').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.close();});
+document.getElementById('flagForm').addEventListener('submit',async e=>{
+  e.preventDefault(); const err=document.getElementById('flagError');
+  const reason=document.querySelector('#flagForm [name="flag_reason"]:checked')?.value||'other';
+  const detail=document.getElementById('flagDetail').value.trim();
+  try{await apiRequest(`/api/reports/${encodeURIComponent(flaggingReportId)}/flag`,{method:'POST',body:JSON.stringify({reason_code:reason,detail})});document.getElementById('flagDialog').close();window.showUXToast?.('ส่งให้ผู้ดูแลตรวจสอบแล้ว ขอบคุณครับ');}
+  catch(ex){err.textContent=`ส่งไม่สำเร็จ: ${ex.message||ex}`;err.hidden=false;}
+});
+document.getElementById('adminReloadQueue').onclick=loadAdminQueue;
+document.querySelectorAll('[data-admin-view]').forEach(b=>b.onclick=()=>{adminQueueView=b.dataset.adminView;document.querySelectorAll('[data-admin-view]').forEach(x=>x.classList.toggle('active',x===b));loadAdminQueue();});
 document.getElementById('adminBtn').onclick=openAdminDialog;
 document.getElementById('closeAdmin').onclick=()=>document.getElementById('adminDialog').close();
 document.getElementById('adminDialog').addEventListener('cancel',e=>{e.preventDefault();e.currentTarget.close();});
@@ -770,12 +826,11 @@ document.getElementById('adminForm').addEventListener('submit',async e=>{
     await apiRequest('/api/admin/verify',{method:'POST',headers:{Authorization:`Bearer ${token}`}});
     adminToken=token; isAdmin=true; apiOnline=true;
     sessionStorage.setItem('maeklong-admin-token',token);
-    updateAdminUi(); await refreshReportsFromBackend();
-    document.getElementById('adminDialog').close();
+    updateAdminUi(); await refreshReportsFromBackend(); await loadAdminQueue();
   }catch(ex){err.textContent=`เข้าสู่โหมดผู้ดูแลไม่ได้: ${ex.message||ex}`;err.hidden=false;}
 });
 document.getElementById('adminLogout').onclick=()=>{
-  adminToken='';isAdmin=false;sessionStorage.removeItem('maeklong-admin-token');updateAdminUi();renderEmergency();
+  adminToken='';isAdmin=false;sessionStorage.removeItem('maeklong-admin-token');updateAdminUi();document.getElementById('adminQueue').innerHTML='<p class="form-help">เข้าสู่โหมดผู้ดูแลเพื่อโหลดคิวตรวจสอบ</p>';renderEmergency();
 };
 document.getElementById('adminClearAll').onclick=async()=>{
   if(!isAdmin)return;
@@ -783,7 +838,7 @@ document.getElementById('adminClearAll').onclick=async()=>{
   if(!confirm('ยืนยันอีกครั้ง: ต้องการล้างข้อมูลรายงานทั้งหมดจริง ๆ ใช่ไหม?'))return;
   try{
     if(apiOnline)await apiRequest('/api/admin/reports',{method:'DELETE',headers:{Authorization:`Bearer ${adminToken}`}});
-    reports=[]; saveReports(); renderEmergency();
+    reports=[]; renderEmergency(); await loadAdminQueue();
     alert('ล้างรายงานสถานการณ์แล้ว');
   }catch(ex){alert(`ล้างข้อมูลไม่สำเร็จ: ${ex.message||ex}`);}
 };

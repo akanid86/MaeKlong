@@ -14,7 +14,7 @@
   <header>
     <div>
       <strong>น้ำท่วมบ้านเรา</strong>
-      <span>สมุทรสาคร · สมุทรสงคราม</span>
+      <span>ลุ่มน้ำแม่กลอง · รายงานจากชุมชน</span>
     </div>
     <div class="header-actions">
       <button id="adminBtn" class="admin-entry" type="button">🔐 ผู้ดูแล</button>
@@ -31,7 +31,6 @@
 
   <div id="panelBackdrop" class="panel-backdrop" hidden></div>
 
-  <section class="area-toolbar" aria-label="เลือกพื้นที่"><div class="area-heading"><span class="eyebrow">ดูสถานการณ์ใกล้บ้าน</span><h1>พื้นที่ไหนที่คุณอยากดู?</h1></div><div class="area-actions"><label class="area-select"><span>พื้นที่</span><select id="areaSelect"><option value="all">ทั้งสองจังหวัด</option><option value="sakhon">สมุทรสาคร</option><option value="songkhram">สมุทรสงคราม</option></select></label><button id="nearMe" type="button" class="secondary">◎ ใกล้ฉัน</button></div></section>
   <main>
     <div id="map">
       <div id="mapStatus" hidden></div>
@@ -75,7 +74,7 @@
           <label><input id="freshOnly" type="checkbox"> เฉพาะรายงานใหม่</label>
           <label><input id="historyToggle" type="checkbox"> แสดงหมดอายุ/คลี่คลายแล้ว</label>
         </div>
-        <p class="mini-note" id="reportStoreStatus">Prototype: รายงานเก็บในเครื่องนี้จนกว่าจะต่อ backend แยก</p>
+        <p class="mini-note" id="reportStoreStatus">กำลังตรวจสอบการเชื่อมต่อฐานข้อมูลกลาง</p>
       </section>
 
       <section class="card" id="layerCard">
@@ -167,6 +166,27 @@
   </dialog>
 
 
+  <dialog id="flagDialog" class="flag-dialog">
+    <form id="flagForm" class="flag-form">
+      <button type="button" class="x" id="closeFlag" aria-label="ปิด">×</button>
+      <h2>แจ้งว่าข้อมูลนี้ไม่ถูกต้อง</h2>
+      <p class="form-help">การแจ้งจะส่งเข้าคิวให้ผู้ดูแลตรวจสอบ ไม่ได้ลบหมุดทันที</p>
+      <input type="hidden" id="flagReportId">
+      <div class="flag-options">
+        <label><input type="radio" name="flag_reason" value="wrong_location" checked> ตำแหน่งผิด</label>
+        <label><input type="radio" name="flag_reason" value="wrong_level"> ระดับน้ำ/รายละเอียดผิด</label>
+        <label><input type="radio" name="flag_reason" value="duplicate"> รายงานซ้ำ</label>
+        <label><input type="radio" name="flag_reason" value="outdated"> สถานการณ์เปลี่ยนแล้ว</label>
+        <label><input type="radio" name="flag_reason" value="spam"> สแปม/ข้อมูลมั่ว</label>
+        <label><input type="radio" name="flag_reason" value="other"> อื่น ๆ</label>
+      </div>
+      <label class="form-field">รายละเอียดเพิ่มเติม (ไม่บังคับ)
+        <textarea id="flagDetail" maxlength="180" placeholder="บอกสั้น ๆ ว่าข้อมูลตรงไหนผิด"></textarea>
+      </label>
+      <p class="form-error" id="flagError" hidden></p>
+      <button type="submit" class="primary full">ส่งให้ผู้ดูแลตรวจสอบ</button>
+    </form>
+  </dialog>
 
   <dialog id="adminDialog" class="admin-dialog">
     <form id="adminForm" class="admin-form">
@@ -181,9 +201,20 @@
         <button type="submit" class="primary">เข้าสู่โหมดผู้ดูแล</button>
         <button type="button" class="secondary" id="adminLogout" hidden>ออกจากโหมดผู้ดูแล</button>
       </div>
+      <section id="adminModeration" class="admin-moderation" hidden>
+        <div class="admin-moderation-head">
+          <div><h3>คิวตรวจสอบรายงาน</h3><p>รายงานใหม่และรายงานที่ผู้ใช้แจ้งว่าผิดจะขึ้นที่นี่</p></div>
+          <button type="button" class="secondary" id="adminReloadQueue">↻ โหลดใหม่</button>
+        </div>
+        <div class="admin-queue-tabs">
+          <button type="button" class="active" data-admin-view="queue">รอตรวจ / ถูกร้องเรียน</button>
+          <button type="button" data-admin-view="all">ทั้งหมด</button>
+        </div>
+        <div id="adminQueue" class="admin-queue"><p class="form-help">เข้าสู่โหมดผู้ดูแลเพื่อโหลดคิวตรวจสอบ</p></div>
+      </section>
       <section id="adminDanger" class="admin-danger" hidden>
         <h3>จัดการข้อมูล</h3>
-        <p>ผู้ดูแลสามารถแก้ไข คลี่คลาย หรือลบรายงานทุกหมุดได้</p>
+        <p>ผู้ดูแลสามารถแก้ไข ยืนยัน ซ่อน ปฏิเสธ คลี่คลาย หรือลบรายงานได้</p>
         <button type="button" class="danger" id="adminClearAll">ล้างรายงานสถานการณ์ทั้งหมด</button>
       </section>
     </form>
