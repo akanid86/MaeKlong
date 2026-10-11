@@ -1,0 +1,544 @@
+{
+  "bpm": 76,
+  "bars": 4,
+  "tracks": [
+    {
+      "id": "nmv1s4npk32",
+      "type": "harp",
+      "name": "Moonlit Harp",
+      "volume": 0.76,
+      "mute": false,
+      "solo": false,
+      "patch": {
+        "wave": "triangle",
+        "attack": 0.003,
+        "decay": 0.51,
+        "sustain": 0.11,
+        "release": 0.46,
+        "cutoff": 5700,
+        "resonance": 0.8,
+        "detune": 0,
+        "vibrato": 0,
+        "rate": 5,
+        "delay": 0,
+        "reverb": 0.35,
+        "pan": 0
+      },
+      "notes": [
+        {
+          "id": "nmv1s4npl37",
+          "p": 57,
+          "s": 0,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl38",
+          "p": 64,
+          "s": 2,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl39",
+          "p": 69,
+          "s": 4,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3a",
+          "p": 73,
+          "s": 6,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3b",
+          "p": 69,
+          "s": 8,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3c",
+          "p": 64,
+          "s": 10,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3d",
+          "p": 61,
+          "s": 12,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3e",
+          "p": 64,
+          "s": 14,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3f",
+          "p": 53,
+          "s": 16,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3g",
+          "p": 60,
+          "s": 18,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3h",
+          "p": 65,
+          "s": 20,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3i",
+          "p": 69,
+          "s": 22,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3j",
+          "p": 65,
+          "s": 24,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3k",
+          "p": 60,
+          "s": 26,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3l",
+          "p": 57,
+          "s": 28,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3m",
+          "p": 60,
+          "s": 30,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3n",
+          "p": 60,
+          "s": 32,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3o",
+          "p": 67,
+          "s": 34,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3p",
+          "p": 72,
+          "s": 36,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3q",
+          "p": 76,
+          "s": 38,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3r",
+          "p": 72,
+          "s": 40,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3s",
+          "p": 67,
+          "s": 42,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3t",
+          "p": 64,
+          "s": 44,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3u",
+          "p": 67,
+          "s": 46,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3v",
+          "p": 55,
+          "s": 48,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3w",
+          "p": 62,
+          "s": 50,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3x",
+          "p": 67,
+          "s": 52,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3y",
+          "p": 71,
+          "s": 54,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl3z",
+          "p": 67,
+          "s": 56,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl40",
+          "p": 62,
+          "s": 58,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl41",
+          "p": 59,
+          "s": 60,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl42",
+          "p": 62,
+          "s": 62,
+          "l": 2
+        }
+      ]
+    },
+    {
+      "id": "nmv1s4npk33",
+      "type": "flute",
+      "name": "Elven Flute",
+      "volume": 0.62,
+      "mute": false,
+      "solo": false,
+      "patch": {
+        "wave": "sine",
+        "attack": 0.085,
+        "decay": 0.13,
+        "sustain": 0.82,
+        "release": 0.26,
+        "cutoff": 5200,
+        "resonance": 0.8,
+        "detune": 0,
+        "vibrato": 10,
+        "rate": 5.3,
+        "delay": 0,
+        "reverb": 0.27,
+        "pan": 0
+      },
+      "notes": [
+        {
+          "id": "nmv1s4npl43",
+          "p": 81,
+          "s": 0,
+          "l": 4
+        },
+        {
+          "id": "nmv1s4npl44",
+          "p": 79,
+          "s": 4,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl45",
+          "p": 76,
+          "s": 8,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl46",
+          "p": 74,
+          "s": 12,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl47",
+          "p": 76,
+          "s": 16,
+          "l": 4
+        },
+        {
+          "id": "nmv1s4npl48",
+          "p": 79,
+          "s": 20,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl49",
+          "p": 81,
+          "s": 24,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl4a",
+          "p": 84,
+          "s": 28,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl4b",
+          "p": 83,
+          "s": 32,
+          "l": 4
+        },
+        {
+          "id": "nmv1s4npl4c",
+          "p": 79,
+          "s": 36,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl4d",
+          "p": 76,
+          "s": 40,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl4e",
+          "p": 74,
+          "s": 44,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl4f",
+          "p": 72,
+          "s": 48,
+          "l": 4
+        },
+        {
+          "id": "nmv1s4npl4g",
+          "p": 74,
+          "s": 52,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl4h",
+          "p": 76,
+          "s": 56,
+          "l": 3
+        },
+        {
+          "id": "nmv1s4npl4i",
+          "p": 79,
+          "s": 60,
+          "l": 3
+        }
+      ]
+    },
+    {
+      "id": "nmv1s4npk36",
+      "type": "strings",
+      "name": "Warm Strings",
+      "volume": 0.31,
+      "mute": false,
+      "solo": false,
+      "patch": {
+        "wave": "sawtooth",
+        "attack": 0.34,
+        "decay": 0.24,
+        "sustain": 0.86,
+        "release": 0.84,
+        "cutoff": 1900,
+        "resonance": 0.8,
+        "detune": 0,
+        "vibrato": 12,
+        "rate": 5,
+        "delay": 0,
+        "reverb": 0.34,
+        "pan": 0
+      },
+      "notes": [
+        {
+          "id": "nmv1s4npl4k",
+          "p": 57,
+          "s": 0,
+          "l": 15
+        },
+        {
+          "id": "nmv1s4npl4l",
+          "p": 64,
+          "s": 0,
+          "l": 15
+        },
+        {
+          "id": "nmv1s4npl4p",
+          "p": 53,
+          "s": 16,
+          "l": 15
+        },
+        {
+          "id": "nmv1s4npl4q",
+          "p": 60,
+          "s": 16,
+          "l": 15
+        },
+        {
+          "id": "nmv1s4npl4u",
+          "p": 60,
+          "s": 32,
+          "l": 15
+        },
+        {
+          "id": "nmv1s4npl4v",
+          "p": 67,
+          "s": 32,
+          "l": 15
+        },
+        {
+          "id": "nmv1s4npl4z",
+          "p": 55,
+          "s": 48,
+          "l": 15
+        },
+        {
+          "id": "nmv1s4npl50",
+          "p": 62,
+          "s": 48,
+          "l": 15
+        }
+      ]
+    },
+    {
+      "id": "nmv1s4npk35",
+      "type": "celesta",
+      "name": "Fairy Lights",
+      "volume": 0.45,
+      "mute": false,
+      "solo": false,
+      "patch": {
+        "wave": "sine",
+        "attack": 0.002,
+        "decay": 0.4,
+        "sustain": 0.055,
+        "release": 0.64,
+        "cutoff": 6700,
+        "resonance": 0.8,
+        "detune": 0,
+        "vibrato": 0,
+        "rate": 5,
+        "delay": 0.13,
+        "reverb": 0.52,
+        "pan": 0
+      },
+      "notes": [
+        {
+          "id": "nmv1s4npl4m",
+          "p": 69,
+          "s": 0,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl4n",
+          "p": 76,
+          "s": 10,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl4r",
+          "p": 65,
+          "s": 16,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl4s",
+          "p": 72,
+          "s": 26,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl4w",
+          "p": 72,
+          "s": 32,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl4x",
+          "p": 79,
+          "s": 42,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl51",
+          "p": 67,
+          "s": 48,
+          "l": 2
+        },
+        {
+          "id": "nmv1s4npl52",
+          "p": 74,
+          "s": 58,
+          "l": 2
+        }
+      ]
+    },
+    {
+      "id": "nmv1s4npk34",
+      "type": "fantasy_pad",
+      "name": "Forest Mist",
+      "volume": 0.34,
+      "mute": false,
+      "solo": false,
+      "patch": {
+        "wave": "triangle",
+        "attack": 0.65,
+        "decay": 0.44,
+        "sustain": 0.9,
+        "release": 1.5,
+        "cutoff": 1650,
+        "resonance": 0.8,
+        "detune": 0,
+        "vibrato": 13,
+        "rate": 5,
+        "delay": 0.11,
+        "reverb": 0.57,
+        "pan": 0
+      },
+      "notes": [
+        {
+          "id": "nmv1s4npl4j",
+          "p": 45,
+          "s": 0,
+          "l": 16
+        },
+        {
+          "id": "nmv1s4npl4o",
+          "p": 41,
+          "s": 16,
+          "l": 16
+        },
+        {
+          "id": "nmv1s4npl4t",
+          "p": 48,
+          "s": 32,
+          "l": 16
+        },
+        {
+          "id": "nmv1s4npl4y",
+          "p": 43,
+          "s": 48,
+          "l": 16
+        }
+      ]
+    }
+  ],
+  "selected": "nmv1s4npk32",
+  "zoom": 24,
+  "drawLength": 2,
+  "format": "beat-studio-project",
+  "version": 2
+}
